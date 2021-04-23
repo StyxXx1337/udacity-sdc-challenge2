@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 
 def find_lane_pixels(binary_warped):
@@ -106,5 +107,16 @@ def fit_polynomial(binary_warped):
     out_img[lefty, leftx] = [255, 0, 0]
     out_img[righty, rightx] = [0, 0, 255]
     # cv2.fillPoly(out_img, np.int_([line_pts]), (0,255, 0))
+
+    window_img = np.zeros_like(out_img)
+    # Generate a polygon to illustrate the search window area
+    # And recast the x and y points into usable format for cv2.fillPoly()
+    left_line = np.array([np.flipud(np.transpose(np.vstack([left_fitx, ploty])))])
+    right_line = np.array([np.transpose(np.vstack([right_fitx, ploty]))])
+    lane_pts = np.hstack((left_line, right_line))
+
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(window_img, np.int_([lane_pts]), (0, 255, 0))
+    out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
 
     return out_img, left_fit, right_fit, ploty, left_fitx, right_fitx
