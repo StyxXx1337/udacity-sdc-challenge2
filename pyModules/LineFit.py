@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from pyModules.Utilities import visualize_lane
 
 
 def find_lane_pixels(binary_warped):
@@ -24,10 +25,10 @@ def find_lane_pixels(binary_warped):
 
     # Set height of windows - based on nwindows above and image shape
     window_height = np.int(binary_warped.shape[0] // nwindows)
-    # Identify the x and y positions of all nonzero pixels in the image
-    nonzero = binary_warped.nonzero()
-    nonzeroy = np.array(nonzero[0])
-    nonzerox = np.array(nonzero[1])
+    # Identify the x and y positions of all none_zero_xy pixels in the image
+    none_zero_xy = binary_warped.nonzero()
+    non_zero_y = np.array(none_zero_xy[0])
+    none_zero_x = np.array(none_zero_xy[1])
     # Current positions to be updated later for each window in nwindows
     leftx_current = leftx_base
     rightx_current = rightx_base
@@ -47,20 +48,20 @@ def find_lane_pixels(binary_warped):
         win_xright_low = rightx_current - margin
         win_xright_high = rightx_current + margin
 
-        # Identify the nonzero pixels in x and y within the window
-        good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
-                          (nonzerox >= win_xleft_low) & (nonzerox < win_xleft_high)).nonzero()[0]
-        good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
-                           (nonzerox >= win_xright_low) & (nonzerox < win_xright_high)).nonzero()[0]
+        # Identify the none_zero_xy pixels in x and y within the window
+        good_left_inds = ((non_zero_y >= win_y_low) & (non_zero_y < win_y_high) &
+                          (none_zero_x >= win_xleft_low) & (none_zero_x < win_xleft_high)).nonzero()[0]
+        good_right_inds = ((non_zero_y >= win_y_low) & (non_zero_y < win_y_high) &
+                           (none_zero_x >= win_xright_low) & (none_zero_x < win_xright_high)).nonzero()[0]
         # Append these indices to the lists
         left_lane_inds.append(good_left_inds)
         right_lane_inds.append(good_right_inds)
 
         # Recenter next window on their mean position
         if len(good_left_inds) > minpix:
-            leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
+            leftx_current = np.int(np.mean(none_zero_x[good_left_inds]))
         if len(good_right_inds) > minpix:
-            rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
+            rightx_current = np.int(np.mean(none_zero_x[good_right_inds]))
 
     # Concatenate the arrays of indices (previously was a list of lists of pixels)
     try:
@@ -71,10 +72,10 @@ def find_lane_pixels(binary_warped):
         pass
 
     # Extract left and right line pixel positions
-    leftx = nonzerox[left_lane_inds]
-    lefty = nonzeroy[left_lane_inds]
-    rightx = nonzerox[right_lane_inds]
-    righty = nonzeroy[right_lane_inds]
+    leftx = none_zero_x[left_lane_inds]
+    lefty = non_zero_y[left_lane_inds]
+    rightx = none_zero_x[right_lane_inds]
+    righty = non_zero_y[right_lane_inds]
 
     return leftx, lefty, rightx, righty, out_img
 
@@ -84,39 +85,21 @@ def fit_polynomial(binary_warped):
     leftx, lefty, rightx, righty, out_img = find_lane_pixels(binary_warped)
 
     # Get second order polynomial for the found coordinates
-    left_fit = np.polyfit(lefty, leftx, 2)
-    right_fit = np.polyfit(righty, rightx, 2)
+    left_polynom = np.polyfit(lefty, leftx, 2)
+    right_polynom = np.polyfit(righty, rightx, 2)
 
     # Generate x and y values for plotting
-    ploty = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
+    y_values = np.linspace(0, binary_warped.shape[0] - 1, binary_warped.shape[0])
     # print(binary_warped.shape[0])
     try:
-        left_fitx = left_fit[0] * ploty ** 2 + left_fit[1] * ploty + left_fit[2]
-        right_fitx = right_fit[0] * ploty ** 2 + right_fit[1] * ploty + right_fit[2]
+        left_fitx = left_polynom[0] * y_values ** 2 + left_polynom[1] * y_values + left_polynom[2]
+        right_fitx = right_polynom[0] * y_values ** 2 + right_polynom[1] * y_values + right_polynom[2]
     except TypeError:
         # Avoids an error if `left_fitx` and `right_fitx` are still none or incorrect
         print('The function failed to fit a line!')
-        left_fitx = 1 * ploty ** 2 + 1 * ploty
-        right_fitx = 1 * ploty ** 2 + 1 * ploty
+        left_fitx = 1 * y_values ** 2 + 1 * y_values
+        right_fitx = 1 * y_values ** 2 + 1 * y_values
 
-    # Visualization
-    # Create an image to draw on and an image to show the selection window
-    out_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
+    out_img = visualize_lane(binary_warped, leftx, lefty, rightx, righty, left_fitx, right_fitx, y_values)
 
-    # Color in left and right line pixels
-    out_img[lefty, leftx] = [255, 0, 0]
-    out_img[righty, rightx] = [0, 0, 255]
-    # cv2.fillPoly(out_img, np.int_([line_pts]), (0,255, 0))
-
-    window_img = np.zeros_like(out_img)
-    # Generate a polygon to illustrate the search window area
-    # And recast the x and y points into usable format for cv2.fillPoly()
-    left_line = np.array([np.flipud(np.transpose(np.vstack([left_fitx, ploty])))])
-    right_line = np.array([np.transpose(np.vstack([right_fitx, ploty]))])
-    lane_pts = np.hstack((left_line, right_line))
-
-    # Draw the lane onto the warped blank image
-    cv2.fillPoly(window_img, np.int_([lane_pts]), (0, 255, 0))
-    out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
-
-    return out_img, left_fit, right_fit, ploty, left_fitx, right_fitx
+    return out_img, left_polynom, right_polynom, y_values, left_fitx, right_fitx
