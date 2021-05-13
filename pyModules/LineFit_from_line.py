@@ -4,7 +4,6 @@ from pyModules.Utilities import visualize_lane
 
 
 def find_polynom_from_former(warped_image, left_line: Line, right_line: Line):
-
     # Define Margin for search window
     margin = 100
 
@@ -38,13 +37,13 @@ def find_polynom_from_former(warped_image, left_line: Line, right_line: Line):
     right_lane_new_coefficient = np.polyfit(right_line_y, right_line_x, 2)
 
     # create y values
-    y_values = np.linspace(0, warped_image.shape[0]-1, warped_image.shape[0])
+    y_values = np.linspace(0, warped_image.shape[0] - 1, warped_image.shape[0])
 
     # Calculate the new x_values based on the new coefficients
     left_lane_x = left_lane_new_coefficient[0] * y_values ** 2 + \
-        left_lane_new_coefficient[1] * y_values + left_lane_new_coefficient[2]
+                  left_lane_new_coefficient[1] * y_values + left_lane_new_coefficient[2]
     right_lane_x = right_lane_new_coefficient[0] * y_values ** 2 + \
-        right_lane_new_coefficient[1] * y_values + right_lane_new_coefficient[2]
+                   right_lane_new_coefficient[1] * y_values + right_lane_new_coefficient[2]
 
     out_img = visualize_lane(warped_image, left_line_x, left_line_y, right_line_x, right_line_y, left_lane_x,
                              right_lane_x, y_values)

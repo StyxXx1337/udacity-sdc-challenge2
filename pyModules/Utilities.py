@@ -78,6 +78,6 @@ def visualize_lane(binary_warped, leftx, lefty, rightx, righty, left_fitx, right
 
     # Draw the lane onto the warped blank image
     cv2.fillPoly(lane_img, np.int_([lane_pts]), (0, 255, 0))
-    out_img = cv2.addWeighted(out_img, 1, lane_img, 0.3, 0)
+    out_img = cv2.addWeighted(out_img, 1, lane_img, 0.6, 0)
 
     return out_img

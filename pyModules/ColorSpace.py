@@ -1,16 +1,17 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 # =============================
 # Parameters for Sobel
-sX_kernel = 31
-sY_kernel = 31
-sMag_kernel = 27
+sX_kernel = 11
+sY_kernel = 11
+sMag_kernel = 21
 sDir_kernel = 31
-sX_thresh = (70, 255)
-sY_thresh = (70, 255)
-sMag_thresh = (100, 255)
-sDir_thresh = (0.85, 1.05)
+sX_thresh = (100, 255)
+sY_thresh = (80, 255)
+sMag_thresh = (80, 255)
+sDir_thresh = (0.75, 1.10)
 hls_thresh = (100, 255)
 
 
@@ -120,7 +121,28 @@ def combine_thresholds(img_undist):
     result_hls = hls_Sspace(img_undist, hls_thresh)
 
     combined = np.zeros_like(result_x)
-    combined[((result_x == 1) & (result_y == 1)) | ((result_mag == 1) & (result_dir == 1)) | (result_hls == 1)] = 1
+    combined[((((result_y == 1) & (result_dir == 1)) | ((result_dir == 1) & (result_mag == 1))) |
+              ((result_dir == 1) & (result_hls == 1)))] = 1
+
+    # ++ Old Combined ++
+    # combined[(((result_x == 1) | (result_y == 1)) & ((result_dir == 1) | (result_hls == 1))) |
+    #          ((result_hls == 1) & ((result_mag == 1) | (result_dir == 1)))] = 1
     combined_img = region_of_interest(combined, region)
+
+    # ++ To check the output of the single thresholds ++
+    # f, ([ax1, ax2], [ax3, ax4], [ax5, ax6]) = plt.subplots(3, 2, figsize=(15, 5))
+    # ax1.imshow(result_x)
+    # ax1.set_title('X-Sobel Image', fontsize=12)
+    # ax2.imshow(result_y)
+    # ax2.set_title('Y-Sobel Image', fontsize=12)
+    # ax3.imshow(result_mag)
+    # ax3.set_title('Magnitude Image', fontsize=12)
+    # ax4.imshow(result_dir)
+    # ax4.set_title('Direction Image', fontsize=12)
+    # ax5.imshow(result_hls)
+    # ax5.set_title('HLS Image', fontsize=12)
+    # ax6.imshow(combined_img)
+    # ax6.set_title('Combined Image', fontsize=12)
+    # plt.show()
 
     return combined_img
